@@ -1,8 +1,44 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native'
-import React from 'react'
-import { Colors } from '@/constants/Colors'
+import React from "react";
+import * as WebBrowser from "expo-web-browser";
+import { Text, View, Button, StyleSheet,Image, TouchableOpacity } from "react-native";
+import {Colors} from './../constants/Colors';
+import { Link } from "expo-router";
+import { useOAuth } from "@clerk/clerk-expo";
+import * as Linking from "expo-linking";
+
+export const UseWarmUpBrowser = () => {
+    React.useEffect(() => {
+      // Warm up the android browser to improve UX
+      // https://docs.expo.dev/guides/authentication/#improving-user-experience
+      void WebBrowser.warmUpAsync();
+      return () => {
+        void WebBrowser.coolDownAsync();
+      };
+    }, []);
+  };
+  
+  WebBrowser.maybeCompleteAuthSession();
+
+  
 
 export default function LoginScreen() {
+    UseWarmUpBrowser();
+    const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+
+    const onPress = React.useCallback(async () => {
+      try {
+        const { createdSessionId, signIn, signUp, setActive } =
+          await startOAuthFlow({ redirectUrl: Linking.createURL("/dashboard", { scheme: "myapp" })});
+  
+        if (createdSessionId) {
+          setActive({ session: createdSessionId });
+        } else {
+          // Use signIn or signUp for next steps such as MFA
+        }
+      } catch (err) {
+        console.error("OAuth error", err);
+      }
+    }, []);
   return (
     <View>
         <View
@@ -33,7 +69,8 @@ export default function LoginScreen() {
                 }}>
                     Find your favorite business near you and post your business to your community.
                 </Text>
-                <TouchableOpacity style={styles.btn}>
+                <TouchableOpacity style={styles.btn}
+                onPress={onPress}>
                     <Text style={{textAlign:'center',
                         color:'#fff',
                         fontFamily:'outfit',
